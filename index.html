@@ -3,135 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM Cobranzas NXAI</title>
+    <title>CRM NXAI</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .customer-card {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            width: 350px;
-            text-align: center;
-        }
-        .customer-card h2 {
-            margin: 0 0 0.5rem 0;
-            color: #333;
-        }
-        .debt-amount {
-            font-size: 2rem;
-            color: #e74c3c;
-            font-weight: bold;
-            margin: 1rem 0;
-        }
-        .info-group {
-            margin-bottom: 1.5rem;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 0.5rem;
-        }
-        .info-label {
-            font-size: 0.8rem;
-            color: #888;
-            text-transform: uppercase;
-        }
-        .info-value {
-            font-size: 1.1rem;
-            color: #444;
-            display: block;
-        }
-        .btn-call {
-            background-color: #2ecc71;
-            color: white;
-            border: none;
-            padding: 1rem 2rem;
-            border-radius: 50px;
-            font-size: 1rem;
-            cursor: pointer;
-            width: 100%;
-            transition: background 0.3s ease;
-            font-weight: bold;
-        }
-        .btn-call:hover {
-            background-color: #27ae60;
-        }
-        .btn-call:disabled {
-            background-color: #bdc3c7;
-            cursor: not-allowed;
-        }
-        #status-msg {
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: #666;
-        }
+        body { font-family: sans-serif; background: #eceff1; display: flex; justify-content: center; padding-top: 50px; }
+        .crm-container { background: white; width: 400px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .header { border-bottom: 2px solid #3498db; margin-bottom: 20px; padding-bottom: 10px; }
+        .tag { background: #3498db; color: white; padding: 3px 10px; border-radius: 5px; font-size: 0.8rem; float: right; }
+        .field { margin-bottom: 15px; }
+        .label { color: #7f8c8d; font-size: 0.85rem; display: block; }
+        .value { font-size: 1.2rem; font-weight: bold; color: #2c3e50; }
+        .btn-call { background: #27ae60; color: white; border: none; width: 100%; padding: 15px; border-radius: 5px; font-size: 1.1rem; cursor: pointer; transition: 0.3s; }
+        .btn-call:hover { background: #2ecc71; }
+        .btn-call:disabled { background: #bdc3c7; }
+        #msg { margin-top: 15px; font-size: 0.9rem; text-align: center; color: #34495e; }
     </style>
 </head>
 <body>
 
-<div class="customer-card">
-    <div class="info-group">
-        <span class="info-label">Cliente</span>
-        <span class="info-value">John Maldonado</span>
+<div class="crm-container">
+    <div class="header">
+        <span class="tag" id="camp-id">Campaña: --</span>
+        <h2 style="margin:0">Ficha de Cobranza</h2>
     </div>
 
-    <div class="info-group">
-        <span class="info-label">Monto Adeudado</span>
-        <div class="debt-amount">S/ 1,250.00</div>
+    <div class="field">
+        <span class="label">Nombre del Cliente</span>
+        <span class="value" id="cust-name">Cargando...</span>
     </div>
 
-    <div class="info-group">
-        <span class="info-label">Teléfono</span>
-        <span class="info-value" id="phone-number">957665935</span>
+    <div class="field">
+        <span class="label">Teléfono</span>
+        <span class="value" id="cust-phone">--</span>
     </div>
 
-    <button class="btn-call" onclick="makeCall()" id="call-btn">
-        📞 LLAMAR
-    </button>
-
-    <div id="status-msg"></div>
+    <button class="btn-call" id="btn-action" onclick="handleAction()" disabled>CARGANDO DATOS...</button>
+    <div id="msg">Conectando con la base de datos</div>
 </div>
 
 <script>
-    async function makeCall() {
-        const btn = document.getElementById('call-btn');
-        const status = document.getElementById('status-msg');
-        const phone = document.getElementById('phone-number').innerText;
-        
-        // URL de tu Worker de Cloudflare
-        const workerUrl = `https://mini-crm-cobranza-3cx.ursus006.workers.dev/api/3cx/call?to=${phone}`;
+    let currentId = null;
+    let currentPhone = null;
+    const workerBase = "https://mini-crm-cobranza-3cx.ursus006.workers.dev";
 
-        btn.disabled = true;
-        btn.innerText = 'CONECTANDO...';
-        status.innerText = 'Iniciando llamada en tu Softphone...';
-
+    // 1. Cargar el siguiente cliente al abrir la página
+    async function loadNext() {
         try {
-            const response = await fetch(workerUrl);
-            const data = await response.json();
+            const res = await fetch(`${workerBase}/api/get-next`);
+            const data = await res.json();
 
-            if (response.ok) {
-                status.style.color = '#27ae60';
-                status.innerText = '✔ Llamada enviada al Softphone.';
-            } else {
-                throw new Error(data.error || 'Error en el servidor');
+            if (data.msg === "FIN_CAMPAÑA") {
+                document.getElementById('cust-name').innerText = "Campaña Finalizada";
+                document.getElementById('btn-action').innerText = "SIN PENDIENTES";
+                document.getElementById('btn-action').disabled = true;
+                return;
             }
-        } catch (error) {
-            status.style.color = '#e74c3c';
-            status.innerText = '❌ Error: ' + error.message;
-        } finally {
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerText = '📞 LLAMAR AHORA';
-            }, 3000);
+
+            currentId = data.id;
+            currentPhone = data.telefono;
+            document.getElementById('cust-name').innerText = data.nombre;
+            document.getElementById('cust-phone').innerText = data.telefono;
+            document.getElementById('camp-id').innerText = `Camp: ${data.campaign_id}`;
+            document.getElementById('btn-action').disabled = false;
+            document.getElementById('btn-action').innerText = "📞 LLAMAR AHORA";
+            document.getElementById('msg').innerText = "Listo para marcar.";
+        } catch (e) {
+            document.getElementById('msg').innerText = "Error cargando datos.";
         }
     }
+
+    // 2. Ejecutar la llamada
+    async function handleAction() {
+        const btn = document.getElementById('btn-action');
+        const msg = document.getElementById('msg');
+        
+        btn.disabled = true;
+        btn.innerText = "MARCANDO...";
+        msg.innerText = "Enviando comando al Softphone de Windows...";
+
+        try {
+            const res = await fetch(`${workerBase}/api/3cx/call?to=${currentPhone}&id=${currentId}`);
+            if (res.ok) {
+                msg.innerText = "✔ Llamada iniciada. Cargando siguiente...";
+                setTimeout(loadNext, 3000); // Salta al siguiente cliente en 3 segundos
+            } else {
+                throw new Error("Error en la llamada");
+            }
+        } catch (e) {
+            msg.innerText = "❌ Error al conectar.";
+            btn.disabled = false;
+            btn.innerText = "REINTENTAR";
+        }
+    }
+
+    window.onload = loadNext;
 </script>
 
 </body>

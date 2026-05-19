@@ -5,277 +5,282 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CRM NXAI - Control de Cobranzas</title>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; display: flex; justify-content: center; padding-top: 50px; }
-        .crm-container { background: white; width: 450px; padding: 30px; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); position: relative; transition: all 0.5s ease; }
-        .header { border-bottom: 3px solid #3498db; margin-bottom: 20px; padding-bottom: 12px; }
-        .tag { background: #3498db; color: white; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; float: right; font-weight: bold; }
-        
-        /* Contenedores de campos */
-        .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
-        .field { margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 6px; border-left: 4px solid #cbd5e1; }
-        .field.highlight { border-left-color: #e74c3c; background: #fdf2f2; }
-        .field.bank { border-left-color: #f1c40f; background: #fef9e7; }
-        .label { color: #64748b; font-size: 0.8rem; display: block; text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
-        .value { font-size: 1.15rem; font-weight: bold; color: #1e293b; }
-        
-        /* Botón de acción principal */
-        .btn-call { background: #27ae60; color: white; border: none; width: 100%; padding: 16px; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(39,174,96,0.3); }
-        .btn-call:hover { background: #2ecc71; box-shadow: 0 6px 15px rgba(46,204,113,0.4); }
-        .btn-call:disabled { background: #cbd5e1; color: #94a3b8; box-shadow: none; cursor: not-allowed; }
-        #msg { margin-top: 15px; font-size: 0.9rem; text-align: center; color: #475569; font-weight: 500; }
-        
-        /* Interruptor / Toggle de Modo */
-        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #f1f5f9; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-        .switch { position: relative; display: inline-block; width: 54px; height: 28px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #e74c3c; }
-        input:checked + .slider:before { transform: translateX(26px); }
-        .toggle-label { font-size: 0.9rem; font-weight: bold; color: #334155; }
 
-        /* Animación de Alerta de Fin de Campaña */
-        .campaign-ended { background: #fff5f5; border: 2px dashed #ef4444; animation: pulseBorder 2s infinite; }
-        @keyframes pulseBorder {
-            0% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-            70% { border-color: #b91c1c; box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
-            100% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        .crm { background: white; width: 460px; padding: 28px; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); }
+        .header { border-bottom: 2px solid #3498db; margin-bottom: 18px; padding-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+        .tag { background: #3498db; color: white; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
+
+        .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .field { background: #f8fafc; padding: 10px; border-radius: 6px; border-left: 3px solid #cbd5e1; margin-bottom: 12px; }
+        .field.red   { border-left-color: #e74c3c; background: #fdf2f2; }
+        .field.yellow{ border-left-color: #f1c40f; background: #fef9e7; }
+        .field.blue  { border-left-color: #3498db; }
+        .field-group .field { margin-bottom: 0; }
+        .lbl { color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px; }
+        .val { font-size: 16px; font-weight: bold; color: #1e293b; }
+
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; background: #f1f5f9; padding: 11px 14px; border-radius: 6px; margin-bottom: 16px; border: 1px solid #e2e8f0; }
+        .toggle-lbl { font-size: 14px; font-weight: bold; color: #334155; }
+        .switch { position: relative; width: 52px; height: 27px; display: inline-block; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; inset: 0; background: #cbd5e1; border-radius: 34px; cursor: pointer; transition: .3s; }
+        .slider:before { content: ""; position: absolute; height: 19px; width: 19px; left: 4px; bottom: 4px; background: white; border-radius: 50%; transition: .3s; }
+        input:checked + .slider { background: #e74c3c; }
+        input:checked + .slider:before { transform: translateX(25px); }
+
+        .btn { width: 100%; padding: 15px; border-radius: 6px; border: none; font-size: 15px; font-weight: bold; cursor: pointer; transition: .2s; margin-top: 4px; }
+        .btn-green { background: #27ae60; color: white; box-shadow: 0 4px 10px rgba(39,174,96,0.3); }
+        .btn-green:hover { background: #2ecc71; }
+        .btn-gray  { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
+        .msg { margin-top: 12px; font-size: 13px; text-align: center; color: #475569; }
+
+        /* Banner de campaña finalizada */
+        .alert-banner { display: none; background: #e74c3c; color: white; text-align: center; padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 14px; font-weight: bold; animation: bounce 1s infinite alternate; }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+
+        /* Borde pulsante cuando campaña termina */
+        .crm.ended { border: 2px dashed #e74c3c; animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(231,76,60,0.4); }
+            70%  { box-shadow: 0 0 0 15px rgba(231,76,60,0); }
+            100% { box-shadow: 0 0 0 0 rgba(231,76,60,0); }
         }
-        
-        .celebration-banner { display: none; background: #ef4444; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 6px; margin-bottom: 15px; font-size: 0.95rem; animation: bounce 1s infinite alternate; }
-        @keyframes bounce {
-            from { transform: translateY(0); } to { transform: translateY(-4px); }
-        }
+
+        /* Modal de confirmación */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        .overlay.show { display: flex; }
+        .modal { background: white; border-radius: 12px; padding: 32px 28px; width: 340px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .modal-icon { font-size: 40px; margin-bottom: 12px; }
+        .modal h3 { font-size: 17px; font-weight: bold; color: #1e293b; margin-bottom: 8px; }
+        .modal p { font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 22px; }
+        .modal-btns { display: flex; gap: 10px; }
+        .modal-btns button { flex: 1; padding: 11px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; transition: .2s; }
+        .modal-btns button.primary { background: #e74c3c; color: white; border-color: #e74c3c; }
+        .modal-btns button:hover { opacity: 0.85; }
     </style>
 </head>
 <body>
 
-<div class="crm-container" id="main-card">
-    <div class="celebration-banner" id="end-banner">🚨 ¡ATENCIÓN: CAMPAÑA FINALIZADA! 🚨</div>
+<!-- Modal de confirmación para iniciar campaña -->
+<div class="overlay" id="overlay">
+    <div class="modal">
+        <div class="modal-icon">🚀</div>
+        <h3>Iniciar campaña predictiva</h3>
+        <p>El discador tomará el control y empezará a marcar automáticamente todos los contactos pendientes. El modo manual quedará desactivado.</p>
+        <div class="modal-btns">
+            <button onclick="cancelarCampana()">Cancelar</button>
+            <button class="primary" onclick="confirmarCampana()">Sí, iniciar</button>
+        </div>
+    </div>
+</div>
+
+<div class="crm" id="crm-card">
+    <div class="alert-banner" id="alert-banner">🚨 Campaña finalizada — todos los contactos fueron procesados</div>
 
     <div class="header">
-        <span class="tag" id="camp-id">Campaña: 5051</span>
-        <h2 style="margin:0; color: #1e293b;">Ficha de Cobranza</h2>
+        <h2 style="font-size:18px; color:#1e293b;">Ficha de Cobranza</h2>
+        <span class="tag">Campaña: 5051</span>
     </div>
 
-    <div class="toggle-container">
-        <span class="toggle-label" id="toggle-state-text">Modo: Manual (CTC)</span>
+    <div class="toggle-row">
+        <span class="toggle-lbl" id="toggle-lbl">Llamada manual</span>
         <label class="switch">
-            <input type="checkbox" id="campaña-toggle" onchange="handleToggleCampaign()">
+            <input type="checkbox" id="toggle" onchange="onToggleChange()">
             <span class="slider"></span>
         </label>
     </div>
 
-    <div class="field" style="border-left-color: #3498db;">
-        <span class="label">Nombre del Cliente</span>
-        <span class="value" id="cust-name">Cargando...</span>
+    <div class="field blue">
+        <span class="lbl">Nombre del Cliente</span>
+        <span class="val" id="cust-name">Cargando...</span>
     </div>
 
     <div class="field-group">
-        <div class="field">
-            <span class="label">Teléfono</span>
-            <span class="value" id="cust-phone">--</span>
-        </div>
-        <div class="field">
-            <span class="label">ID Registro</span>
-            <span class="value" id="cust-id">--</span>
-        </div>
+        <div class="field"><span class="lbl">Teléfono</span><span class="val" id="cust-phone">--</span></div>
+        <div class="field"><span class="lbl">ID Registro</span><span class="val" id="cust-id">--</span></div>
     </div>
 
     <div class="field-group">
-        <div class="field bank">
-            <span class="label">Banco</span>
-            <span class="value" id="cust-bank">--</span>
-        </div>
-        <div class="field highlight">
-            <span class="label">Monto de Deuda</span>
-            <span class="value" id="cust-debt">--</span>
-        </div>
+        <div class="field yellow"><span class="lbl">Banco</span><span class="val" id="cust-bank">--</span></div>
+        <div class="field red"><span class="lbl">Monto de Deuda</span><span class="val" id="cust-debt">--</span></div>
     </div>
 
-    <button class="btn-call" id="btn-action" onclick="handleAction()" disabled>CARGANDO DATOS...</button>
-    <div id="msg">Conectando con la base de datos...</div>
+    <button class="btn btn-gray" id="btn-action" onclick="handleCall()" disabled>Cargando datos...</button>
+    <div class="msg" id="msg">Conectando con la base de datos...</div>
 </div>
 
 <script>
-    let currentId = null;
-    let currentPhone = null;
-    let campaignActive = false;
     const workerBase = "https://mini-crm-cobranza-3cx.ursus006.workers.dev";
+    const bancos    = ["BCP","BBVA Perú","Interbank","Scotiabank","BanBif"];
+    const apellidos = ["Vásquez","Cacho","Mendoza","Palomino","Rojas","Flores","García","Quispe","Sánchez","Ramírez"];
 
-    const bancosMock = ["BCP", "BBVA Perú", "Interbank", "Scotiabank", "BanBif"];
-    const apellidosMock = ["Vásquez", "Cacho", "Mendoza", "Palomino", "Rojas", "Flores", "García", "Quispe", "Sánchez", "Ramírez"];
+    let currentId = null, currentPhone = null, campaignActive = false;
 
-    async function initCRM() {
-        await checkToggleState(); 
-        await loadNext();         
+    /* ── Audio ── */
+    function playTone(freq, start, dur) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator(), gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+            gain.gain.setValueAtTime(0.18, ctx.currentTime + start);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + start + dur);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + start);
+            osc.stop(ctx.currentTime + start + dur);
+        } catch(e) {}
+    }
+    function playEndSound() {
+        playTone(880, 0.0, 0.35);
+        playTone(880, 0.45, 0.35);
+        playTone(1200, 0.9, 0.7);
     }
 
+    /* ── Init ── */
+    async function init() {
+        await checkToggle();
+        await loadNext();
+    }
+
+    async function checkToggle() {
+        try {
+            const res  = await fetch(`${workerBase}/api/crm/toggle`);
+            const data = await res.json();
+            campaignActive = data.activo === 1;
+            document.getElementById('toggle').checked = campaignActive;
+            updateToggleLabel();
+        } catch(e) {}
+    }
+
+    /* ── Carga siguiente contacto ── */
     async function loadNext() {
         try {
-            const res = await fetch(`${workerBase}/api/crm/contactos`);
+            const res      = await fetch(`${workerBase}/api/crm/contactos`);
             const contactos = await res.json();
-
             const pendiente = contactos.find(c => c.estado === 'PENDIENTE');
 
-            if (!pendiente) {
-                triggerCampaignEndEffects(); 
-                return;
-            }
+            if (!pendiente) { showCampaignEnded(); return; }
 
-            clearCampaignEndEffects();
-
-            currentId = pendiente.id;
+            clearEnded();
+            currentId    = pendiente.id;
             currentPhone = pendiente.telefono;
-            
-            let nombreCompleto = pendiente.nombre;
-            if (!nombreCompleto.includes(" ") || nombreCompleto.split(" ").length < 3) {
-                const apellido1 = apellidosMock[pendiente.id % apellidosMock.length];
-                const apellido2 = apellidosMock[(pendiente.id + 3) % apellidosMock.length];
-                nombreCompleto = `${pendiente.nombre} ${apellido1} ${apellido2}`;
+
+            let nombre = pendiente.nombre;
+            if (!nombre.includes(" ") || nombre.split(" ").length < 3) {
+                nombre += ` ${apellidos[pendiente.id % apellidos.length]} ${apellidos[(pendiente.id + 3) % apellidos.length]}`;
             }
 
-            const montoInventado = (Math.E * pendiente.id * 123.45 % 4500 + 350).toFixed(2);
-            const bancoInventado = bancosMock[pendiente.id % bancosMock.length];
+            document.getElementById('cust-id').textContent   = `#${pendiente.id}`;
+            document.getElementById('cust-name').textContent = nombre;
+            document.getElementById('cust-phone').textContent= pendiente.telefono;
+            document.getElementById('cust-bank').textContent = bancos[pendiente.id % bancos.length];
+            document.getElementById('cust-debt').textContent = `S/ ${(Math.E * pendiente.id * 123.45 % 4500 + 350).toFixed(2)}`;
 
-            document.getElementById('cust-id').innerText = `#${pendiente.id}`;
-            document.getElementById('cust-name').innerText = nombreCompleto;
-            document.getElementById('cust-phone').innerText = pendiente.telefono;
-            document.getElementById('cust-bank').innerText = bancoInventado;
-            document.getElementById('cust-debt').innerText = `S/ ${montoInventado}`;
-            
             const btn = document.getElementById('btn-action');
             if (campaignActive) {
-                btn.disabled = true;
-                btn.innerText = "🤖 PREDICTIVO";
-                document.getElementById('msg').innerText = "El predictivo está procesando este registro.";
+                btn.className = 'btn btn-gray'; btn.disabled = true;
+                btn.textContent = '🤖 Predictivo activo';
+                document.getElementById('msg').textContent = 'El discador está procesando este registro automáticamente.';
             } else {
-                btn.disabled = false;
-                btn.innerText = "📞 LLAMAR AHORA";
-                document.getElementById('msg').innerText = "Registro listo para procesar mediante llamada manual.";
+                btn.className = 'btn btn-green'; btn.disabled = false;
+                btn.textContent = '📞 Llamar ahora';
+                document.getElementById('msg').textContent = 'Registro listo para llamada manual.';
             }
-        } catch (e) {
-            document.getElementById('msg').innerText = "❌ Error al sincronizar datos con Cloudflare.";
+        } catch(e) {
+            document.getElementById('msg').textContent = '❌ Error al sincronizar con Cloudflare.';
         }
     }
 
-    async function handleAction() {
+    /* ── Campaña finalizada ── */
+    function showCampaignEnded() {
+        document.getElementById('crm-card').classList.add('ended');
+        document.getElementById('alert-banner').style.display = 'block';
+        ['cust-name','cust-phone','cust-bank','cust-debt','cust-id'].forEach(id => {
+            document.getElementById(id).textContent = '--';
+        });
         const btn = document.getElementById('btn-action');
-        const msg = document.getElementById('msg');
-        
-        btn.disabled = true;
-        btn.innerText = "MARCANDO...";
-        msg.innerText = "Enviando comando al Softphone de Windows...";
+        btn.className = 'btn btn-gray'; btn.disabled = true;
+        btn.textContent = '🏁 Campaña completada';
+        document.getElementById('msg').textContent = 'Todos los contactos fueron procesados.';
+        playEndSound();
+    }
 
-        try {
-            const res = await fetch(`${workerBase}/api/3cx/call?to=${currentPhone}&id=${currentId}`);
-            if (res.ok) {
-                msg.innerText = "✔ Llamada enviada con éxito. Cargando siguiente ficha...";
-                setTimeout(loadNext, 3000); 
-            } else {
-                throw new Error("Fallo");
-            }
-        } catch (e) {
-            msg.innerText = "❌ Error al procesar llamada manual.";
-            btn.disabled = false;
-            btn.innerText = "REINTENTAR";
+    function clearEnded() {
+        document.getElementById('crm-card').classList.remove('ended');
+        document.getElementById('alert-banner').style.display = 'none';
+    }
+
+    /* ── Toggle ── */
+    function updateToggleLabel() {
+        const lbl = document.getElementById('toggle-lbl');
+        if (campaignActive) {
+            lbl.textContent  = 'Campaña Predictiva Activa';
+            lbl.style.color  = '#e74c3c';
+        } else {
+            lbl.textContent  = 'Llamada Manual';
+            lbl.style.color  = '#334155';
         }
     }
 
-    async function checkToggleState() {
-        try {
-            const res = await fetch(`${workerBase}/api/crm/toggle`);
-            const data = await res.json();
-            const checkbox = document.getElementById('campaña-toggle');
-            
-            campaignActive = (data.activo === 1);
-            checkbox.checked = campaignActive;
-            updateToggleLabelText(data.activo);
-        } catch (e) {
-            console.error("Error al leer switch", e);
+    function onToggleChange() {
+        const checked = document.getElementById('toggle').checked;
+        if (checked) {
+            // Quiere activar campaña → mostrar modal de confirmación
+            document.getElementById('toggle').checked = false; // revertir visualmente hasta confirmar
+            document.getElementById('overlay').classList.add('show');
+        } else {
+            // Quiere volver a manual → aplicar directamente
+            setToggle(false);
         }
     }
 
-    async function handleToggleCampaign() {
-        const checkbox = document.getElementById('campaña-toggle');
-        campaignActive = checkbox.checked;
-        const estadoToggle = campaignActive ? 1 : 0;
-        
-        updateToggleLabelText(estadoToggle);
+    function cancelarCampana() {
+        document.getElementById('overlay').classList.remove('show');
+        document.getElementById('toggle').checked = false;
+    }
 
+    async function confirmarCampana() {
+        document.getElementById('overlay').classList.remove('show');
+        await setToggle(true);
+    }
+
+    async function setToggle(activo) {
+        campaignActive = activo;
+        document.getElementById('toggle').checked = activo;
+        updateToggleLabel();
         try {
             await fetch(`${workerBase}/api/crm/toggle`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ activo: estadoToggle })
+                body: JSON.stringify({ activo: activo ? 1 : 0 })
             });
-            await loadNext();
-        } catch (e) {
-            document.getElementById('msg').innerText = "Error al actualizar modo.";
-        }
+        } catch(e) {}
+        clearEnded();
+        await loadNext();
     }
 
-    function updateToggleLabelText(activo) {
-        const textLabel = document.getElementById('toggle-state-text');
-        if (activo === 1) {
-            textLabel.innerText = "Campaña Predictiva Activa";
-            textLabel.style.color = "#e74c3c";
-        } else {
-            textLabel.innerText = "Llamada Manual";
-            textLabel.style.color = "#4a5568";
-        }
-    }
-
-    function triggerCampaignEndEffects() {
-        document.getElementById('main-card').classList.add('campaign-ended');
-        document.getElementById('end-banner').style.display = "block";
-        
-        document.getElementById('cust-name').innerText = "---";
-        document.getElementById('cust-phone').innerText = "--";
-        document.getElementById('cust-bank').innerText = "--";
-        document.getElementById('cust-debt').innerText = "--";
-        document.getElementById('cust-id').innerText = "--";
-        
+    /* ── Llamada manual ── */
+    async function handleCall() {
         const btn = document.getElementById('btn-action');
-        btn.innerText = "🏁 COMPLETO";
-        btn.disabled = true;
-        document.getElementById('msg').innerText = "Campaña completada";
-
+        const msg = document.getElementById('msg');
+        btn.disabled = true; btn.textContent = 'Marcando...';
+        msg.textContent = 'Enviando comando al softphone de Windows...';
         try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            function emitirTono(frecuencia, inicio, duracion) {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(frecuencia, audioCtx.currentTime + inicio);
-                
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime + inicio);
-                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + inicio + duracion);
-                
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                
-                osc.start(audioCtx.currentTime + inicio);
-                osc.stop(audioCtx.currentTime + inicio + duracion);
-            }
-
-            emitirTono(880, 0.0, 0.4);  
-            emitirTono(880, 0.5, 0.4);  
-            emitirTono(1200, 1.0, 0.8); 
-        } catch (error) {
-            console.log("AudioContext bloqueado.");
+            const res = await fetch(`${workerBase}/api/3cx/call?to=${currentPhone}&id=${currentId}`);
+            if (res.ok) {
+                msg.textContent = '✔ Llamada enviada. Cargando siguiente ficha...';
+                setTimeout(loadNext, 3000);
+            } else throw new Error();
+        } catch(e) {
+            msg.textContent = '❌ Error al procesar la llamada.';
+            btn.disabled = false; btn.textContent = '📞 Reintentar';
+            btn.className = 'btn btn-green';
         }
     }
 
-    function clearCampaignEndEffects() {
-        document.getElementById('main-card').classList.remove('campaign-ended');
-        document.getElementById('end-banner').style.display = "none";
-    }
-
-    window.onload = initCRM;
+    window.onload = init;
 </script>
-
 </body>
 </html>

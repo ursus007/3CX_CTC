@@ -96,6 +96,14 @@
     }
 
     window.onload = loadNext;
+    
+    fetch('https://mini-crm-cobranza-3cx.ursus006.workers.dev/api/crm/contactos')
+      .then(res => res.json())
+      .then(data => {
+     // Aquí pintas tu tabla HTML con los nombres, teléfonos y estados
+     console.log(data); 
+  });
+    
 </script>
 
 </body>

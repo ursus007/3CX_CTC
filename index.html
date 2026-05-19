@@ -55,11 +55,11 @@
 
     <div class="header">
         <span class="tag" id="camp-id">Campaña: 5051</span>
-        <h2 style="margin:0; color: #1e293b;">Ficha de Cliente</h2>
+        <h2 style="margin:0; color: #1e293b;">Ficha de Cobranza</h2>
     </div>
 
     <div class="toggle-container">
-        <span class="toggle-label" id="toggle-state-text">Modo: Preview</span>
+        <span class="toggle-label" id="toggle-state-text">Modo: Manual (CTC)</span>
         <label class="switch">
             <input type="checkbox" id="campaña-toggle" onchange="handleToggleCampaign()">
             <span class="slider"></span>
@@ -103,38 +103,31 @@
     let campaignActive = false;
     const workerBase = "https://mini-crm-cobranza-3cx.ursus006.workers.dev";
 
-    // Banco y Apellidos fallback para simular campos avanzados de BD de forma creativa
     const bancosMock = ["BCP", "BBVA Perú", "Interbank", "Scotiabank", "BanBif"];
     const apellidosMock = ["Vásquez", "Cacho", "Mendoza", "Palomino", "Rojas", "Flores", "García", "Quispe", "Sánchez", "Ramírez"];
 
-    // Inicializador del sistema
     async function initCRM() {
         await checkToggleState(); 
         await loadNext();         
     }
 
-    // Cargar y procesar el siguiente cliente pendiente
     async function loadNext() {
         try {
             const res = await fetch(`${workerBase}/api/crm/contactos`);
             const contactos = await res.json();
 
-            // Buscar el primer registro pendiente
             const pendiente = contactos.find(c => c.estado === 'PENDIENTE');
 
             if (!pendiente) {
-                triggerCampaignEndEffects(); // ¡Efecto visual y sonoro creativo de fin de campaña!
+                triggerCampaignEndEffects(); 
                 return;
             }
 
-            // Limpiar efectos de fin si encuentra registros nuevos
             clearCampaignEndEffects();
 
-            // Inyectar datos principales
             currentId = pendiente.id;
             currentPhone = pendiente.telefono;
             
-            // Generar Apellidos dinámicos si solo viene un nombre en la base de datos
             let nombreCompleto = pendiente.nombre;
             if (!nombreCompleto.includes(" ") || nombreCompleto.split(" ").length < 3) {
                 const apellido1 = apellidosMock[pendiente.id % apellidosMock.length];
@@ -142,34 +135,30 @@
                 nombreCompleto = `${pendiente.nombre} ${apellido1} ${apellido2}`;
             }
 
-            // Generar Montos de Deuda y Bancos basados de manera determinista en el ID
             const montoInventado = (Math.E * pendiente.id * 123.45 % 4500 + 350).toFixed(2);
             const bancoInventado = bancosMock[pendiente.id % bancosMock.length];
 
-            // Renderizar los elementos enriquecidos en el HTML
             document.getElementById('cust-id').innerText = `#${pendiente.id}`;
             document.getElementById('cust-name').innerText = nombreCompleto;
             document.getElementById('cust-phone').innerText = pendiente.telefono;
             document.getElementById('cust-bank').innerText = bancoInventado;
             document.getElementById('cust-debt').innerText = `S/ ${montoInventado}`;
             
-            // Administrar estados según el interruptor (Toggle)
             const btn = document.getElementById('btn-action');
             if (campaignActive) {
                 btn.disabled = true;
-                btn.innerText = "🤖 DISCANDO EN AUTOMÁTICO";
-                document.getElementById('msg').innerText = "El discador 3CX (9000) está procesando este registro de fondo.";
+                btn.innerText = "🤖 PREDICTIVO";
+                document.getElementById('msg').innerText = "El predictivo está procesando este registro.";
             } else {
                 btn.disabled = false;
                 btn.innerText = "📞 LLAMAR AHORA";
-                document.getElementById('msg').innerText = "Registro listo para procesar mediante Click-to-Call manual.";
+                document.getElementById('msg').innerText = "Registro listo para procesar mediante llamada manual.";
             }
         } catch (e) {
             document.getElementById('msg').innerText = "❌ Error al sincronizar datos con Cloudflare.";
         }
     }
 
-    // Ejecutar Click-to-Call Manual
     async function handleAction() {
         const btn = document.getElementById('btn-action');
         const msg = document.getElementById('msg');
@@ -187,13 +176,12 @@
                 throw new Error("Fallo");
             }
         } catch (e) {
-            msg.innerText = "❌ Error al procesar Click-to-Call.";
+            msg.innerText = "❌ Error al procesar llamada manual.";
             btn.disabled = false;
             btn.innerText = "REINTENTAR";
         }
     }
 
-    // Comprobar estado del interruptor en la DB
     async function checkToggleState() {
         try {
             const res = await fetch(`${workerBase}/api/crm/toggle`);
@@ -208,7 +196,6 @@
         }
     }
 
-    // Procesar evento del interruptor
     async function handleToggleCampaign() {
         const checkbox = document.getElementById('campaña-toggle');
         campaignActive = checkbox.checked;
@@ -231,19 +218,15 @@
     function updateToggleLabelText(activo) {
         const textLabel = document.getElementById('toggle-state-text');
         if (activo === 1) {
-            textLabel.innerText = "Modo: Campaña Activa (9000)";
+            textLabel.innerText = "Campaña Predictiva Activa";
             textLabel.style.color = "#e74c3c";
         } else {
-            textLabel.innerText = "Modo: Manual (CTC)";
+            textLabel.innerText = "Llamada Manual";
             textLabel.style.color = "#4a5568";
         }
     }
 
-    // ========================================================
-    // SECCIÓN CREATIVA: ALERTA VISUAL Y SONORA DE FIN DE CAMPAÑA
-    // ========================================================
     function triggerCampaignEndEffects() {
-        // 1. Efecto Visual: Mutación de tarjeta y activación de Banner de Advertencia
         document.getElementById('main-card').classList.add('campaign-ended');
         document.getElementById('end-banner').style.display = "block";
         
@@ -256,10 +239,8 @@
         const btn = document.getElementById('btn-action');
         btn.innerText = "🏁 COMPLETO";
         btn.disabled = true;
-        document.getElementById('msg').innerText = "¡Felicidades! Se procesaron todos los registros pendientes.";
+        document.getElementById('msg').innerText = "Campaña completada";
 
-        // 2. Efecto Sonoro Dinámico: Código morse sintetizado de alerta (sin archivos externos .mp3)
-        // Emitirá tres tonos limpios de advertencia para despertar la atención del agente.
         try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             
@@ -271,7 +252,6 @@
                 osc.frequency.setValueAtTime(frecuencia, audioCtx.currentTime + inicio);
                 
                 gain.gain.setValueAtTime(0.2, audioCtx.currentTime + inicio);
-                // Rampas suaves para no dañar los audífonos del agente
                 gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + inicio + duracion);
                 
                 osc.connect(gain);
@@ -281,12 +261,11 @@
                 osc.stop(audioCtx.currentTime + inicio + duracion);
             }
 
-            // Secuencia de sonido tipo "Alerta de sistema"
-            emitirTono(880, 0.0, 0.4);  // Tono Alto
-            emitirTono(880, 0.5, 0.4);  // Tono Alto repetido
-            emitirTono(1200, 1.0, 0.8); // Silbato de cierre largo
+            emitirTono(880, 0.0, 0.4);  
+            emitirTono(880, 0.5, 0.4);  
+            emitirTono(1200, 1.0, 0.8); 
         } catch (error) {
-            console.log("AudioContext bloqueado por directivas del navegador hasta interacción del usuario.");
+            console.log("AudioContext bloqueado.");
         }
     }
 

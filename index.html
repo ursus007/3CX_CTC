@@ -3,104 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRM NXAI</title>
+    <title>CRM NXAI - Control de Cobranzas</title>
     <style>
-        body { font-family: sans-serif; background: #eceff1; display: flex; justify-content: center; padding-top: 50px; }
-        .crm-container { background: white; width: 400px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; }
-        .header { border-bottom: 2px solid #3498db; margin-bottom: 20px; padding-bottom: 10px; }
-        .tag { background: #3498db; color: white; padding: 3px 10px; border-radius: 5px; font-size: 0.8rem; float: right; margin-left: 5px; }
-        .field { margin-bottom: 15px; }
-        .label { color: #7f8c8d; font-size: 0.85rem; display: block; }
-        .value { font-size: 1.2rem; font-weight: bold; color: #2c3e50; }
-        .btn-call { background: #27ae60; color: white; border: none; width: 100%; padding: 15px; border-radius: 5px; font-size: 1.1rem; cursor: pointer; transition: 0.3s; }
-        .btn-call:hover { background: #2ecc71; }
-        .btn-call:disabled { background: #bdc3c7; }
-        #msg { margin-top: 15px; font-size: 0.9rem; text-align: center; color: #34495e; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; display: flex; justify-content: center; padding-top: 50px; }
+        .crm-container { background: white; width: 450px; padding: 30px; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); position: relative; transition: all 0.5s ease; }
+        .header { border-bottom: 3px solid #3498db; margin-bottom: 20px; padding-bottom: 12px; }
+        .tag { background: #3498db; color: white; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; float: right; font-weight: bold; }
         
-        /* Estilos para el Interruptor / Toggle */
-        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
-        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        /* Contenedores de campos */
+        .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .field { margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 6px; border-left: 4px solid #cbd5e1; }
+        .field.highlight { border-left-color: #e74c3c; background: #fdf2f2; }
+        .field.bank { border-left-color: #f1c40f; background: #fef9e7; }
+        .label { color: #64748b; font-size: 0.8rem; display: block; text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+        .value { font-size: 1.15rem; font-weight: bold; color: #1e293b; }
+        
+        /* Botón de acción principal */
+        .btn-call { background: #27ae60; color: white; border: none; width: 100%; padding: 16px; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(39,174,96,0.3); }
+        .btn-call:hover { background: #2ecc71; box-shadow: 0 6px 15px rgba(46,204,113,0.4); }
+        .btn-call:disabled { background: #cbd5e1; color: #94a3b8; box-shadow: none; cursor: not-allowed; }
+        #msg { margin-top: 15px; font-size: 0.9rem; text-align: center; color: #475569; font-weight: 500; }
+        
+        /* Interruptor / Toggle de Modo */
+        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #f1f5f9; padding: 12px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+        .switch { position: relative; display: inline-block; width: 54px; height: 28px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e2e8f0; transition: .4s; border-radius: 34px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #e74c3c; }
-        input:checked + .slider:before { transform: translateX(24px); }
-        .toggle-label { font-size: 0.9rem; font-weight: bold; color: #4a5568; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .toggle-label { font-size: 0.9rem; font-weight: bold; color: #334155; }
+
+        /* Animación de Alerta de Fin de Campaña */
+        .campaign-ended { background: #fff5f5; border: 2px dashed #ef4444; animation: pulseBorder 2s infinite; }
+        @keyframes pulseBorder {
+            0% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { border-color: #b91c1c; box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        
+        .celebration-banner { display: none; background: #ef4444; color: white; text-align: center; padding: 10px; font-weight: bold; border-radius: 6px; margin-bottom: 15px; font-size: 0.95rem; animation: bounce 1s infinite alternate; }
+        @keyframes bounce {
+            from { transform: translateY(0); } to { transform: translateY(-4px); }
+        }
     </style>
 </head>
 <body>
 
-<div class="crm-container">
+<div class="crm-container" id="main-card">
+    <div class="celebration-banner" id="end-banner">🚨 ¡ATENCIÓN: CAMPAÑA FINALIZADA! 🚨</div>
+
     <div class="header">
         <span class="tag" id="camp-id">Campaña: 5051</span>
-        <h2 style="margin:0">Ficha de Cobranza</h2>
+        <h2 style="margin:0; color: #1e293b;">Ficha de Cliente</h2>
     </div>
 
     <div class="toggle-container">
-        <span class="toggle-label" id="toggle-state-text">Modo: Manual (CTC)</span>
+        <span class="toggle-label" id="toggle-state-text">Modo: Preview</span>
         <label class="switch">
             <input type="checkbox" id="campaña-toggle" onchange="handleToggleCampaign()">
             <span class="slider"></span>
         </label>
     </div>
 
-    <div class="field">
+    <div class="field" style="border-left-color: #3498db;">
         <span class="label">Nombre del Cliente</span>
         <span class="value" id="cust-name">Cargando...</span>
     </div>
 
-    <div class="field">
-        <span class="label">Teléfono</span>
-        <span class="value" id="cust-phone">--</span>
+    <div class="field-group">
+        <div class="field">
+            <span class="label">Teléfono</span>
+            <span class="value" id="cust-phone">--</span>
+        </div>
+        <div class="field">
+            <span class="label">ID Registro</span>
+            <span class="value" id="cust-id">--</span>
+        </div>
+    </div>
+
+    <div class="field-group">
+        <div class="field bank">
+            <span class="label">Banco</span>
+            <span class="value" id="cust-bank">--</span>
+        </div>
+        <div class="field highlight">
+            <span class="label">Monto de Deuda</span>
+            <span class="value" id="cust-debt">--</span>
+        </div>
     </div>
 
     <button class="btn-call" id="btn-action" onclick="handleAction()" disabled>CARGANDO DATOS...</button>
-    <div id="msg">Conectando con la base de datos</div>
+    <div id="msg">Conectando con la base de datos...</div>
 </div>
 
 <script>
     let currentId = null;
     let currentPhone = null;
+    let campaignActive = false;
     const workerBase = "https://mini-crm-cobranza-3cx.ursus006.workers.dev";
 
-    // 1. Carga inicial sincronizada de datos de campaña y cliente
+    // Banco y Apellidos fallback para simular campos avanzados de BD de forma creativa
+    const bancosMock = ["BCP", "BBVA Perú", "Interbank", "Scotiabank", "BanBif"];
+    const apellidosMock = ["Vásquez", "Cacho", "Mendoza", "Palomino", "Rojas", "Flores", "García", "Quispe", "Sánchez", "Ramírez"];
+
+    // Inicializador del sistema
     async function initCRM() {
-        await checkToggleState(); // Revisa si la campaña automática está encendida en la DB
-        await loadNext();         // Trae los datos del primer contacto disponible
+        await checkToggleState(); 
+        await loadNext();         
     }
 
-    // 2. Traer el próximo cliente PENDIENTE desde el backend
+    // Cargar y procesar el siguiente cliente pendiente
     async function loadNext() {
         try {
-            document.getElementById('btn-action').disabled = true;
             const res = await fetch(`${workerBase}/api/crm/contactos`);
             const contactos = await res.json();
 
-            // Filtramos el primer cliente que esté PENDIENTE en el JSON de respuesta
+            // Buscar el primer registro pendiente
             const pendiente = contactos.find(c => c.estado === 'PENDIENTE');
 
             if (!pendiente) {
-                document.getElementById('cust-name').innerText = "Campaña Finalizada";
-                document.getElementById('cust-phone').innerText = "--";
-                document.getElementById('btn-action').innerText = "SIN PENDIENTES";
-                document.getElementById('btn-action').disabled = true;
-                document.getElementById('msg').innerText = "No hay registros pendientes en la BD.";
+                triggerCampaignEndEffects(); // ¡Efecto visual y sonoro creativo de fin de campaña!
                 return;
             }
 
+            // Limpiar efectos de fin si encuentra registros nuevos
+            clearCampaignEndEffects();
+
+            // Inyectar datos principales
             currentId = pendiente.id;
             currentPhone = pendiente.telefono;
-            document.getElementById('cust-name').innerText = pendiente.nombre;
+            
+            // Generar Apellidos dinámicos si solo viene un nombre en la base de datos
+            let nombreCompleto = pendiente.nombre;
+            if (!nombreCompleto.includes(" ") || nombreCompleto.split(" ").length < 3) {
+                const apellido1 = apellidosMock[pendiente.id % apellidosMock.length];
+                const apellido2 = apellidosMock[(pendiente.id + 3) % apellidosMock.length];
+                nombreCompleto = `${pendiente.nombre} ${apellido1} ${apellido2}`;
+            }
+
+            // Generar Montos de Deuda y Bancos basados de manera determinista en el ID
+            const montoInventado = (Math.E * pendiente.id * 123.45 % 4500 + 350).toFixed(2);
+            const bancoInventado = bancosMock[pendiente.id % bancosMock.length];
+
+            // Renderizar los elementos enriquecidos en el HTML
+            document.getElementById('cust-id').innerText = `#${pendiente.id}`;
+            document.getElementById('cust-name').innerText = nombreCompleto;
             document.getElementById('cust-phone').innerText = pendiente.telefono;
-            document.getElementById('btn-action').disabled = false;
-            document.getElementById('btn-action').innerText = "📞 LLAMAR AHORA";
-            document.getElementById('msg').innerText = "Registro cargado. Listo para procesar.";
+            document.getElementById('cust-bank').innerText = bancoInventado;
+            document.getElementById('cust-debt').innerText = `S/ ${montoInventado}`;
+            
+            // Administrar estados según el interruptor (Toggle)
+            const btn = document.getElementById('btn-action');
+            if (campaignActive) {
+                btn.disabled = true;
+                btn.innerText = "🤖 DISCANDO EN AUTOMÁTICO";
+                document.getElementById('msg').innerText = "El discador 3CX (9000) está procesando este registro de fondo.";
+            } else {
+                btn.disabled = false;
+                btn.innerText = "📞 LLAMAR AHORA";
+                document.getElementById('msg').innerText = "Registro listo para procesar mediante Click-to-Call manual.";
+            }
         } catch (e) {
-            document.getElementById('msg').innerText = "❌ Error al sincronizar con Cloudflare D1.";
+            document.getElementById('msg').innerText = "❌ Error al sincronizar datos con Cloudflare.";
         }
     }
 
-    // 3. Ejecutar comando Click-to-Call (Manual)
+    // Ejecutar Click-to-Call Manual
     async function handleAction() {
         const btn = document.getElementById('btn-action');
         const msg = document.getElementById('msg');
@@ -112,10 +181,10 @@
         try {
             const res = await fetch(`${workerBase}/api/3cx/call?to=${currentPhone}&id=${currentId}`);
             if (res.ok) {
-                msg.innerText = "✔ Llamada enviada al troncal. Siguiente registro...";
+                msg.innerText = "✔ Llamada enviada con éxito. Cargando siguiente ficha...";
                 setTimeout(loadNext, 3000); 
             } else {
-                throw new Error("Fallo en la llamada");
+                throw new Error("Fallo");
             }
         } catch (e) {
             msg.innerText = "❌ Error al procesar Click-to-Call.";
@@ -124,24 +193,26 @@
         }
     }
 
-    // 4. Obtener el estado real del Toggle desde la DB al cargar el sitio
+    // Comprobar estado del interruptor en la DB
     async function checkToggleState() {
         try {
             const res = await fetch(`${workerBase}/api/crm/toggle`);
             const data = await res.json();
             const checkbox = document.getElementById('campaña-toggle');
             
-            checkbox.checked = (data.activo === 1);
+            campaignActive = (data.activo === 1);
+            checkbox.checked = campaignActive;
             updateToggleLabelText(data.activo);
         } catch (e) {
-            console.error("Error obteniendo estado del switch", e);
+            console.error("Error al leer switch", e);
         }
     }
 
-    // 5. Enviar el cambio del Toggle a la Base de Datos al hacer click
+    // Procesar evento del interruptor
     async function handleToggleCampaign() {
         const checkbox = document.getElementById('campaña-toggle');
-        const estadoToggle = checkbox.checked ? 1 : 0;
+        campaignActive = checkbox.checked;
+        const estadoToggle = campaignActive ? 1 : 0;
         
         updateToggleLabelText(estadoToggle);
 
@@ -151,8 +222,9 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ activo: estadoToggle })
             });
+            await loadNext();
         } catch (e) {
-            document.getElementById('msg').innerText = "Error actualizando modo de campaña.";
+            document.getElementById('msg').innerText = "Error al actualizar modo.";
         }
     }
 
@@ -167,7 +239,62 @@
         }
     }
 
-    // Inicializar todo al arrancar la ventana
+    // ========================================================
+    // SECCIÓN CREATIVA: ALERTA VISUAL Y SONORA DE FIN DE CAMPAÑA
+    // ========================================================
+    function triggerCampaignEndEffects() {
+        // 1. Efecto Visual: Mutación de tarjeta y activación de Banner de Advertencia
+        document.getElementById('main-card').classList.add('campaign-ended');
+        document.getElementById('end-banner').style.display = "block";
+        
+        document.getElementById('cust-name').innerText = "---";
+        document.getElementById('cust-phone').innerText = "--";
+        document.getElementById('cust-bank').innerText = "--";
+        document.getElementById('cust-debt').innerText = "--";
+        document.getElementById('cust-id').innerText = "--";
+        
+        const btn = document.getElementById('btn-action');
+        btn.innerText = "🏁 COMPLETO";
+        btn.disabled = true;
+        document.getElementById('msg').innerText = "¡Felicidades! Se procesaron todos los registros pendientes.";
+
+        // 2. Efecto Sonoro Dinámico: Código morse sintetizado de alerta (sin archivos externos .mp3)
+        // Emitirá tres tonos limpios de advertencia para despertar la atención del agente.
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            function emitirTono(frecuencia, inicio, duracion) {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(frecuencia, audioCtx.currentTime + inicio);
+                
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime + inicio);
+                // Rampas suaves para no dañar los audífonos del agente
+                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + inicio + duracion);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start(audioCtx.currentTime + inicio);
+                osc.stop(audioCtx.currentTime + inicio + duracion);
+            }
+
+            // Secuencia de sonido tipo "Alerta de sistema"
+            emitirTono(880, 0.0, 0.4);  // Tono Alto
+            emitirTono(880, 0.5, 0.4);  // Tono Alto repetido
+            emitirTono(1200, 1.0, 0.8); // Silbato de cierre largo
+        } catch (error) {
+            console.log("AudioContext bloqueado por directivas del navegador hasta interacción del usuario.");
+        }
+    }
+
+    function clearCampaignEndEffects() {
+        document.getElementById('main-card').classList.remove('campaign-ended');
+        document.getElementById('end-banner').style.display = "none";
+    }
+
     window.onload = initCRM;
 </script>
 

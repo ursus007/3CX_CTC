@@ -6,9 +6,9 @@
     <title>CRM NXAI</title>
     <style>
         body { font-family: sans-serif; background: #eceff1; display: flex; justify-content: center; padding-top: 50px; }
-        .crm-container { background: white; width: 400px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .crm-container { background: white; width: 400px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); position: relative; }
         .header { border-bottom: 2px solid #3498db; margin-bottom: 20px; padding-bottom: 10px; }
-        .tag { background: #3498db; color: white; padding: 3px 10px; border-radius: 5px; font-size: 0.8rem; float: right; }
+        .tag { background: #3498db; color: white; padding: 3px 10px; border-radius: 5px; font-size: 0.8rem; float: right; margin-left: 5px; }
         .field { margin-bottom: 15px; }
         .label { color: #7f8c8d; font-size: 0.85rem; display: block; }
         .value { font-size: 1.2rem; font-weight: bold; color: #2c3e50; }
@@ -16,14 +16,32 @@
         .btn-call:hover { background: #2ecc71; }
         .btn-call:disabled { background: #bdc3c7; }
         #msg { margin-top: 15px; font-size: 0.9rem; text-align: center; color: #34495e; }
+        
+        /* Estilos para el Interruptor / Toggle */
+        .toggle-container { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 10px; border-radius: 5px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e2e8f0; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #e74c3c; }
+        input:checked + .slider:before { transform: translateX(24px); }
+        .toggle-label { font-size: 0.9rem; font-weight: bold; color: #4a5568; }
     </style>
 </head>
 <body>
 
 <div class="crm-container">
     <div class="header">
-        <span class="tag" id="camp-id">Campaña: --</span>
+        <span class="tag" id="camp-id">Campaña: 5051</span>
         <h2 style="margin:0">Ficha de Cobranza</h2>
+    </div>
+
+    <div class="toggle-container">
+        <span class="toggle-label" id="toggle-state-text">Modo: Manual (CTC)</span>
+        <label class="switch">
+            <input type="checkbox" id="campaña-toggle" onchange="handleToggleCampaign()">
+            <span class="slider"></span>
+        </label>
     </div>
 
     <div class="field">
@@ -45,33 +63,44 @@
     let currentPhone = null;
     const workerBase = "https://mini-crm-cobranza-3cx.ursus006.workers.dev";
 
-    // 1. Cargar el siguiente cliente al abrir la página
+    // 1. Carga inicial sincronizada de datos de campaña y cliente
+    async function initCRM() {
+        await checkToggleState(); // Revisa si la campaña automática está encendida en la DB
+        await loadNext();         // Trae los datos del primer contacto disponible
+    }
+
+    // 2. Traer el próximo cliente PENDIENTE desde el backend
     async function loadNext() {
         try {
-            const res = await fetch(`${workerBase}/api/get-next`);
-            const data = await res.json();
+            document.getElementById('btn-action').disabled = true;
+            const res = await fetch(`${workerBase}/api/crm/contactos`);
+            const contactos = await res.json();
 
-            if (data.msg === "FIN_CAMPAÑA") {
+            // Filtramos el primer cliente que esté PENDIENTE en el JSON de respuesta
+            const pendiente = contactos.find(c => c.estado === 'PENDIENTE');
+
+            if (!pendiente) {
                 document.getElementById('cust-name').innerText = "Campaña Finalizada";
+                document.getElementById('cust-phone').innerText = "--";
                 document.getElementById('btn-action').innerText = "SIN PENDIENTES";
                 document.getElementById('btn-action').disabled = true;
+                document.getElementById('msg').innerText = "No hay registros pendientes en la BD.";
                 return;
             }
 
-            currentId = data.id;
-            currentPhone = data.telefono;
-            document.getElementById('cust-name').innerText = data.nombre;
-            document.getElementById('cust-phone').innerText = data.telefono;
-            document.getElementById('camp-id').innerText = `Camp: ${data.campaign_id}`;
+            currentId = pendiente.id;
+            currentPhone = pendiente.telefono;
+            document.getElementById('cust-name').innerText = pendiente.nombre;
+            document.getElementById('cust-phone').innerText = pendiente.telefono;
             document.getElementById('btn-action').disabled = false;
             document.getElementById('btn-action').innerText = "📞 LLAMAR AHORA";
-            document.getElementById('msg').innerText = "Listo para marcar.";
+            document.getElementById('msg').innerText = "Registro cargado. Listo para procesar.";
         } catch (e) {
-            document.getElementById('msg').innerText = "Error cargando datos.";
+            document.getElementById('msg').innerText = "❌ Error al sincronizar con Cloudflare D1.";
         }
     }
 
-    // 2. Ejecutar la llamada
+    // 3. Ejecutar comando Click-to-Call (Manual)
     async function handleAction() {
         const btn = document.getElementById('btn-action');
         const msg = document.getElementById('msg');
@@ -83,27 +112,63 @@
         try {
             const res = await fetch(`${workerBase}/api/3cx/call?to=${currentPhone}&id=${currentId}`);
             if (res.ok) {
-                msg.innerText = "✔ Llamada iniciada. Cargando siguiente...";
-                setTimeout(loadNext, 3000); // Salta al siguiente cliente en 3 segundos
+                msg.innerText = "✔ Llamada enviada al troncal. Siguiente registro...";
+                setTimeout(loadNext, 3000); 
             } else {
-                throw new Error("Error en la llamada");
+                throw new Error("Fallo en la llamada");
             }
         } catch (e) {
-            msg.innerText = "❌ Error al conectar.";
+            msg.innerText = "❌ Error al procesar Click-to-Call.";
             btn.disabled = false;
             btn.innerText = "REINTENTAR";
         }
     }
 
-    window.onload = loadNext;
-    
-    fetch('https://mini-crm-cobranza-3cx.ursus006.workers.dev/api/crm/contactos')
-      .then(res => res.json())
-      .then(data => {
-     // Aquí pintas tu tabla HTML con los nombres, teléfonos y estados
-     console.log(data); 
-  });
-    
+    // 4. Obtener el estado real del Toggle desde la DB al cargar el sitio
+    async function checkToggleState() {
+        try {
+            const res = await fetch(`${workerBase}/api/crm/toggle`);
+            const data = await res.json();
+            const checkbox = document.getElementById('campaña-toggle');
+            
+            checkbox.checked = (data.activo === 1);
+            updateToggleLabelText(data.activo);
+        } catch (e) {
+            console.error("Error obteniendo estado del switch", e);
+        }
+    }
+
+    // 5. Enviar el cambio del Toggle a la Base de Datos al hacer click
+    async function handleToggleCampaign() {
+        const checkbox = document.getElementById('campaña-toggle');
+        const estadoToggle = checkbox.checked ? 1 : 0;
+        
+        updateToggleLabelText(estadoToggle);
+
+        try {
+            await fetch(`${workerBase}/api/crm/toggle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ activo: estadoToggle })
+            });
+        } catch (e) {
+            document.getElementById('msg').innerText = "Error actualizando modo de campaña.";
+        }
+    }
+
+    function updateToggleLabelText(activo) {
+        const textLabel = document.getElementById('toggle-state-text');
+        if (activo === 1) {
+            textLabel.innerText = "Modo: Campaña Activa (9000)";
+            textLabel.style.color = "#e74c3c";
+        } else {
+            textLabel.innerText = "Modo: Manual (CTC)";
+            textLabel.style.color = "#4a5568";
+        }
+    }
+
+    // Inicializar todo al arrancar la ventana
+    window.onload = initCRM;
 </script>
 
 </body>

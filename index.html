@@ -14,9 +14,9 @@
 
         .field-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
         .field { background: #f8fafc; padding: 10px; border-radius: 6px; border-left: 3px solid #cbd5e1; margin-bottom: 12px; }
-        .field.red   { border-left-color: #e74c3c; background: #fdf2f2; }
-        .field.yellow{ border-left-color: #f1c40f; background: #fef9e7; }
-        .field.blue  { border-left-color: #3498db; }
+        .field.red    { border-left-color: #e74c3c; background: #fdf2f2; }
+        .field.yellow { border-left-color: #f1c40f; background: #fef9e7; }
+        .field.blue   { border-left-color: #3498db; }
         .field-group .field { margin-bottom: 0; }
         .lbl { color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px; }
         .val { font-size: 16px; font-weight: bold; color: #1e293b; }
@@ -36,9 +36,12 @@
         .btn-gray  { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
         .msg { margin-top: 12px; font-size: 13px; text-align: center; color: #475569; }
 
-        /* Banner de campaña finalizada */
+        /* Banner campaña finalizada */
         .alert-banner { display: none; background: #e74c3c; color: white; text-align: center; padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 14px; font-weight: bold; animation: bounce 1s infinite alternate; }
         @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+
+        /* Banner sin pendientes en modo manual */
+        .info-banner { display: none; background: #3498db; color: white; text-align: center; padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 14px; font-weight: bold; }
 
         /* Borde pulsante cuando campaña termina */
         .crm.ended { border: 2px dashed #e74c3c; animation: pulse 2s infinite; }
@@ -77,7 +80,11 @@
 </div>
 
 <div class="crm" id="crm-card">
+    <!-- Banner rojo: campaña terminó (solo en modo predictivo sin pendientes) -->
     <div class="alert-banner" id="alert-banner">🚨 Campaña finalizada — todos los contactos fueron procesados</div>
+
+    <!-- Banner azul: sin pendientes pero en modo manual -->
+    <div class="info-banner" id="info-banner">ℹ️ No hay contactos pendientes en este momento</div>
 
     <div class="header">
         <h2 style="font-size:18px; color:#1e293b;">Ficha de Cobranza</h2>
@@ -85,7 +92,7 @@
     </div>
 
     <div class="toggle-row">
-        <span class="toggle-lbl" id="toggle-lbl">Llamada manual</span>
+        <span class="toggle-lbl" id="toggle-lbl">Llamada Manual</span>
         <label class="switch">
             <input type="checkbox" id="toggle" onchange="onToggleChange()">
             <span class="slider"></span>
@@ -94,7 +101,7 @@
 
     <div class="field blue">
         <span class="lbl">Nombre del Cliente</span>
-        <span class="val" id="cust-name">Cargando...</span>
+        <span class="val" id="cust-name">--</span>
     </div>
 
     <div class="field-group">
@@ -156,14 +163,24 @@
 
     /* ── Carga siguiente contacto ── */
     async function loadNext() {
+        hideBanners();
         try {
-            const res      = await fetch(`${workerBase}/api/crm/contactos`);
+            const res       = await fetch(`${workerBase}/api/crm/contactos`);
             const contactos = await res.json();
             const pendiente = contactos.find(c => c.estado === 'PENDIENTE');
 
-            if (!pendiente) { showCampaignEnded(); return; }
+            if (!pendiente) {
+                if (campaignActive) {
+                    // Modo predictivo sin pendientes → campaña finalizada
+                    showCampaignEnded();
+                } else {
+                    // Modo manual sin pendientes → aviso azul, no bloquea
+                    showNoPendientes();
+                }
+                return;
+            }
 
-            clearEnded();
+            // Hay contacto pendiente → mostrar ficha
             currentId    = pendiente.id;
             currentPhone = pendiente.telefono;
 
@@ -172,11 +189,11 @@
                 nombre += ` ${apellidos[pendiente.id % apellidos.length]} ${apellidos[(pendiente.id + 3) % apellidos.length]}`;
             }
 
-            document.getElementById('cust-id').textContent   = `#${pendiente.id}`;
-            document.getElementById('cust-name').textContent = nombre;
-            document.getElementById('cust-phone').textContent= pendiente.telefono;
-            document.getElementById('cust-bank').textContent = bancos[pendiente.id % bancos.length];
-            document.getElementById('cust-debt').textContent = `S/ ${(Math.E * pendiente.id * 123.45 % 4500 + 350).toFixed(2)}`;
+            document.getElementById('cust-id').textContent    = `#${pendiente.id}`;
+            document.getElementById('cust-name').textContent  = nombre;
+            document.getElementById('cust-phone').textContent = pendiente.telefono;
+            document.getElementById('cust-bank').textContent  = bancos[pendiente.id % bancos.length];
+            document.getElementById('cust-debt').textContent  = `S/ ${(Math.E * pendiente.id * 123.45 % 4500 + 350).toFixed(2)}`;
 
             const btn = document.getElementById('btn-action');
             if (campaignActive) {
@@ -193,13 +210,17 @@
         }
     }
 
-    /* ── Campaña finalizada ── */
+    /* ── Estados de pantalla ── */
+    function hideBanners() {
+        document.getElementById('crm-card').classList.remove('ended');
+        document.getElementById('alert-banner').style.display = 'none';
+        document.getElementById('info-banner').style.display  = 'none';
+    }
+
     function showCampaignEnded() {
         document.getElementById('crm-card').classList.add('ended');
         document.getElementById('alert-banner').style.display = 'block';
-        ['cust-name','cust-phone','cust-bank','cust-debt','cust-id'].forEach(id => {
-            document.getElementById(id).textContent = '--';
-        });
+        clearFields();
         const btn = document.getElementById('btn-action');
         btn.className = 'btn btn-gray'; btn.disabled = true;
         btn.textContent = '🏁 Campaña completada';
@@ -207,31 +228,42 @@
         playEndSound();
     }
 
-    function clearEnded() {
-        document.getElementById('crm-card').classList.remove('ended');
-        document.getElementById('alert-banner').style.display = 'none';
+    function showNoPendientes() {
+        // Modo manual sin pendientes: banner azul informativo, sin bloquear toggle
+        document.getElementById('info-banner').style.display = 'block';
+        clearFields();
+        const btn = document.getElementById('btn-action');
+        btn.className = 'btn btn-gray'; btn.disabled = true;
+        btn.textContent = '📋 Sin contactos pendientes';
+        document.getElementById('msg').textContent = 'Puedes agregar contactos o resetear la campaña en la base de datos.';
+    }
+
+    function clearFields() {
+        ['cust-name','cust-phone','cust-bank','cust-debt','cust-id'].forEach(id => {
+            document.getElementById(id).textContent = '--';
+        });
     }
 
     /* ── Toggle ── */
     function updateToggleLabel() {
         const lbl = document.getElementById('toggle-lbl');
         if (campaignActive) {
-            lbl.textContent  = 'Campaña Predictiva Activa';
-            lbl.style.color  = '#e74c3c';
+            lbl.textContent = 'Campaña Predictiva Activa';
+            lbl.style.color = '#e74c3c';
         } else {
-            lbl.textContent  = 'Llamada Manual';
-            lbl.style.color  = '#334155';
+            lbl.textContent = 'Llamada Manual';
+            lbl.style.color = '#334155';
         }
     }
 
     function onToggleChange() {
         const checked = document.getElementById('toggle').checked;
         if (checked) {
-            // Quiere activar campaña → mostrar modal de confirmación
-            document.getElementById('toggle').checked = false; // revertir visualmente hasta confirmar
+            // Quiere activar campaña → mostrar modal primero
+            document.getElementById('toggle').checked = false;
             document.getElementById('overlay').classList.add('show');
         } else {
-            // Quiere volver a manual → aplicar directamente
+            // Vuelve a manual → aplicar directo
             setToggle(false);
         }
     }
@@ -257,7 +289,6 @@
                 body: JSON.stringify({ activo: activo ? 1 : 0 })
             });
         } catch(e) {}
-        clearEnded();
         await loadNext();
     }
 

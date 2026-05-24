@@ -6,9 +6,9 @@
     <title>CRM NXAI - Control de Cobranzas</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; display: flex; justify-content: center; padding-top: 50px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eceff1; display: flex; justify-content: center; gap: 20px; padding-top: 50px; flex-wrap: wrap; }
 
-        .crm { background: white; width: 460px; padding: 28px; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); }
+        .crm { background: white; width: 460px; padding: 28px; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); height: fit-content; }
         .header { border-bottom: 2px solid #3498db; margin-bottom: 18px; padding-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
         .tag { background: #3498db; color: white; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }
 
@@ -62,11 +62,25 @@
         .modal-btns button { flex: 1; padding: 11px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; transition: .2s; }
         .modal-btns button.primary { background: #e74c3c; color: white; border-color: #e74c3c; }
         .modal-btns button:hover { opacity: 0.85; }
+
+        /* Estilos del nuevo panel de agentes */
+        .agents-panel { background: white; width: 340px; padding: 28px; border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); height: fit-content; }
+        .agents-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; max-height: 340px; overflow-y: auto; padding-right: 2px; }
+        .agent-card { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .agent-info { display: flex; flex-direction: column; gap: 2px; }
+        .agent-name { font-size: 14px; font-weight: bold; color: #1e293b; }
+        .agent-ext { font-size: 11px; color: #64748b; font-weight: 600; }
+        .agent-badge { font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 12px; text-transform: uppercase; }
+        
+        /* Estados de presencia colores */
+        .status-available { background: #def7ec; color: #03543f; }
+        .status-away { background: #fef9e7; color: #713f12; }
+        .status-busy { background: #fdf2f2; color: #9b1c1c; }
+        .status-offline { background: #e2e8f0; color: #475569; }
     </style>
 </head>
 <body>
 
-<!-- Modal de confirmación para iniciar campaña -->
 <div class="overlay" id="overlay">
     <div class="modal">
         <div class="modal-icon">🚀</div>
@@ -80,10 +94,8 @@
 </div>
 
 <div class="crm" id="crm-card">
-    <!-- Banner rojo: campaña terminó (solo en modo predictivo sin pendientes) -->
     <div class="alert-banner" id="alert-banner">🚨 Campaña finalizada — todos los contactos fueron procesados</div>
 
-    <!-- Banner azul: sin pendientes pero en modo manual -->
     <div class="info-banner" id="info-banner">ℹ️ No hay contactos pendientes en este momento</div>
 
     <div class="header">
@@ -118,6 +130,16 @@
     <div class="msg" id="msg">Conectando con la base de datos...</div>
 </div>
 
+<div class="agents-panel">
+    <div class="header" style="border-bottom-color: #27ae60;">
+        <h2 style="font-size:18px; color:#1e293b;">Estado de Asesores</h2>
+        <span class="tag" style="background: #27ae60;">3CX Live</span>
+    </div>
+    <div class="agents-list" id="agents-list">
+        <div class="msg" style="margin-top:0;">Cargando estados del servidor...</div>
+    </div>
+</div>
+
 <script>
     const workerBase = "https://mini-crm-cobranza-3cx.ursus006.workers.dev";
     const bancos    = ["BCP","BBVA Perú","Interbank","Scotiabank","BanBif"];
@@ -149,6 +171,9 @@
     async function init() {
         await checkToggle();
         await loadNext();
+        await loadAgentes();
+        // Polling automático: actualiza el panel de agentes cada 3 segundos sin recargar
+        setInterval(loadAgentes, 3000);
     }
 
     async function checkToggle() {
@@ -161,11 +186,56 @@
         } catch(e) {}
     }
 
+    /* ── NUEVO: Carga y renderizado de agentes en tiempo real ── */
+    async function loadAgentes() {
+        try {
+            const res = await fetch(`${workerBase}/api/crm/agentes`);
+            const agentes = await res.json();
+            const container = document.getElementById('agents-list');
+            
+            if (!agentes || agentes.length === 0) {
+                container.innerHTML = '<div class="msg">No se encontraron extensiones.</div>';
+                return;
+            }
+
+            container.innerHTML = agentes.map(agente => {
+                let badgeClass = 'status-offline';
+                let estadoTexto = 'Inactivo';
+
+                if (agente.conectado) {
+                    if (agente.estado === 'Available') {
+                        badgeClass = 'status-available';
+                        estadoTexto = 'Disponible';
+                    } else if (agente.estado === 'Away' || agente.estado === 'OutofOffice') {
+                        badgeClass = 'status-away';
+                        estadoTexto = 'Ausente';
+                    } else {
+                        badgeClass = 'status-busy';
+                        estadoTexto = 'Ocupado';
+                    }
+                }
+
+                return `
+                    <div class="agent-card">
+                        <div class="agent-info">
+                            <span class="agent-name">${agente.nombre || 'Asesor'}</span>
+                            <span class="agent-ext">Ext. ${agente.extension}</span>
+                        </div>
+                        <span class="agent-badge ${badgeClass}">${estadoTexto}</span>
+                    </div>
+                `;
+            }).join('');
+
+        } catch(e) {
+            document.getElementById('agents-list').innerHTML = '<div class="msg" style="color:#e74c3c;">❌ Error de conexión con agentes.</div>';
+        }
+    }
+
     /* ── Carga siguiente contacto ── */
     async function loadNext() {
         hideBanners();
         try {
-            const res       = await fetch(`${workerBase}/api/crm/contactos`);
+            const res        = await fetch(`${workerBase}/api/crm/contactos`);
             const contactos = await res.json();
             const pendiente = contactos.find(c => c.estado === 'PENDIENTE');
 

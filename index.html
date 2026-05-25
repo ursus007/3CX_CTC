@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CRM Cobranzas - NX TECH PERU</title>
+  <title>CRM Cobranzas - NXAI</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -98,13 +98,36 @@
     .bg-away { background-color: #d68c45; color: #fff3e3; }
     .bg-offline { background-color: #4a4a4a; color: #ccc; }
     
-    /* Estilos del nuevo Cajón de Tipificación */
     .cajon-tipificacion {
       background-color: #333a42;
       border: 2px solid #00adb5;
       border-radius: 8px;
       padding: 15px;
       margin-top: 15px;
+    }
+
+    /* Estilos para la tabla de Historial */
+    .historial-panel {
+      margin-top: 20px;
+      background-color: #252525;
+      padding: 15px;
+      border-radius: 6px;
+      border: 1px solid #3a3a3a;
+    }
+    .historial-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .historial-table th, .historial-table td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #3a3a3a;
+    }
+    .historial-table th {
+      color: #00adb5;
+      font-weight: bold;
     }
     
     /* Toggle Switch */
@@ -146,6 +169,24 @@
       
       <button class="btn btn-call" onclick="iniciarLlamadaManual()">📞 Realizar Llamada (Click-to-Call)</button>
       
+      <div class="historial-panel">
+        <h3 style="font-size: 16px; border-bottom: none; padding-bottom: 0; margin-bottom: 5px;">Historial de Llamadas Previas</h3>
+        <table class="historial-table">
+          <thead>
+            <tr>
+              <th>Fecha/Hora</th>
+              <th>Resultado</th>
+              <th>Compromiso</th>
+            </tr>
+          </thead>
+          <tbody id="lista-historial">
+            <tr>
+              <td colspan="3" style="color: #aaa; text-align: center;">Sin llamadas previas registradas.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <div id="cajon-disposicion" class="cajon-tipificacion" style="display: none;">
         <h3>Tipificar Resultado de Llamada</h3>
         
@@ -198,20 +239,15 @@
     const WORKER_URL = "https://mini-crm-cobranza-3cx.ursus006.workers.dev";
     let contactoActualId = null;
 
-    // Inicialización del CRM
     window.addEventListener("DOMContentLoaded", () => {
       cargarAgentes();
       verificarToggle();
       obtenerSiguienteContacto();
       
-      // REFRESCO AUTOMÁTICO: Ejecuta cargarAgentes cada 5 segundos de forma silenciosa
       setInterval(cargarAgentes, 5000);
-      
-      // Polling para el discador automático cada 3 segundos
       setInterval(obtenerSiguienteContacto, 3000);
     });
 
-    // 1. Cargar el estado de los asesores desde el Worker
     async function cargarAgentes() {
       try {
         const res = await fetch(`${WORKER_URL}/api/crm/agentes`);
@@ -244,9 +280,8 @@
       }
     }
 
-    // 2. Traer los datos del contacto actual en pantalla
+    // Traer contacto y renderizar su historial dinámicamente
     async function obtenerSiguienteContacto() {
-      // Si ya hay un cliente mostrándose y el cajón de tipificación está abierto, no sobreescribir
       if (contactoActualId && document.getElementById("cajon-disposicion").style.display === "block") {
         return;
       }
@@ -257,17 +292,35 @@
         const contactos = await res.json();
         
         if (contactos && contactos.length > 0) {
-          const proxy = contactos[0]; // Tomamos el último en proceso
+          const proxy = contactos[0];
           contactoActualId = proxy.id;
           document.getElementById("cli-nombre").value = proxy.nombre;
           document.getElementById("cli-telefono").value = proxy.telefono;
+
+          // Pintar el historial recibido en la tabla
+          const tbody = document.getElementById("lista-historial");
+          tbody.innerHTML = "";
+
+          if (proxy.historial && proxy.historial.length > 0) {
+            proxy.historial.forEach(h => {
+              const fechaCompromisoText = h.fecha_compromiso ? h.fecha_compromiso : "-";
+              tbody.innerHTML += `
+                <tr>
+                  <td>${h.fecha}</td>
+                  <td><span style="color:#00adb5; font-weight:bold;">${h.tipificacion}</span></td>
+                  <td>${fechaCompromisoText}</td>
+                </tr>
+              `;
+            });
+          } else {
+            tbody.innerHTML = `<tr><td colspan="3" style="color: #aaa; text-align: center;">Sin llamadas previas registradas.</td></tr>`;
+          }
         }
       } catch (err) {
         console.error("Error al obtener contacto:", err);
       }
     }
 
-    // 3. Click-to-call manual
     async function iniciarLlamadaManual() {
       const tel = document.getElementById("cli-telefono").value;
       if (!tel || !contactoActualId) {
@@ -275,7 +328,6 @@
         return;
       }
       
-      // Habilitar el cajón de tipificación inmediatamente para que el asesor la use en la llamada
       mostrarCajonTipificacion();
 
       try {
@@ -285,7 +337,6 @@
       }
     }
 
-    // 4. Lógica de control para el Cajón de Tipificación
     function mostrarCajonTipificacion() {
       document.getElementById("cajon-disposicion").style.display = "block";
     }
@@ -294,7 +345,6 @@
       const valor = document.getElementById("select-tipificacion").value;
       const campoFecha = document.getElementById("campo-fecha-compromiso");
       
-      // Si es promesa de pago, obligamos a mostrar el calendario
       if (valor === "PROMESA") {
         campoFecha.style.display = "block";
       } else {
@@ -329,13 +379,11 @@
 
         if (res.ok) {
           alert("Gestión guardada exitosamente.");
-          // Limpiar la interfaz para el próximo cliente
           document.getElementById("cajon-disposicion").style.display = "none";
           document.getElementById("select-tipificacion").value = "";
           document.getElementById("input-fecha").value = "";
           contactoActualId = null;
           
-          // Forzar la búsqueda inmediata del siguiente contacto
           obtenerSiguienteContacto();
         } else {
           alert("Hubo un problema al guardar la gestión.");
@@ -345,7 +393,6 @@
       }
     }
 
-    // 5. Control del Toggle Automático/Manual
     async function verificarToggle() {
       try {
         const res = await fetch(`${WORKER_URL}/api/crm/toggle`);
